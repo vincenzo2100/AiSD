@@ -1,7 +1,11 @@
 from collections import defaultdict
 from enum import Enum
 from typing import Any,Optional,Dict,List,Callable
+
+from networkx.algorithms.shortest_paths import weighted
 from Queue import Queue
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class EdgeType(Enum):
     directed = 1
@@ -10,11 +14,9 @@ class EdgeType(Enum):
 class Vertex:
     data:Any
     index: int
-
-    def __init__(self,data:Any,index: int) -> None:
+    def __init__(self,data:Any) -> None:
         self.data = data
-        self.index = index
-        
+
 class Edge:
     source: Vertex
     destination: Vertex
@@ -22,27 +24,32 @@ class Edge:
 
 class Graph:
     adjacencies: Dict[Vertex,List[Edge]]
+    draw_directed: List = []
+    draw_undirected: List = []
 
     def __init__(self,adjacencies=None) -> None:
         if(adjacencies == None):
             adjacencies={}
         self.adjacencies = adjacencies
 
-    def create_vertex(self,index:int, data: Any) -> Vertex:
-        vertex = Vertex(data,index)
-        self.adjacencies[str(index)+": "+str(data)]=[]
-
+    def create_vertex(self,data: Any) -> Vertex:
+        vertex = Vertex(data)
+        self.adjacencies[vertex.data]=[]
+        
     def add_directed_edge(self, source: Vertex, destination: Vertex, weight: Optional[float] = None) -> None:
         self.adjacencies[source].append(destination)
         if(weight is not None):
             self.adjacencies[source].append(weight)
+        self.draw_directed.append((source,destination,weight))
     
     def add_undirected_edge(self, source: Vertex, destination: Vertex, weight: Optional[float] = None) -> None:
-        self.adjacencies[source].append(destination)
-        self.adjacencies[destination].append(source)
-        if(weight is not None):
-            self.adjacencies[source].append(weight)
-            self.adjacencies[destination].append(weight)
+            self.adjacencies[source].append(destination)
+            self.adjacencies[destination].append(source)
+            if(weight is not None):
+                self.adjacencies[source].append(weight)
+                self.adjacencies[destination].append(weight)
+            self.draw_undirected.append((source,destination,weight))
+            self.draw_undirected.append((destination,source,weight))
 
     def add(self, edge: EdgeType, source: Vertex, destination: Vertex, weight: Optional[float] = None) -> None:
         if(edge==1):
@@ -63,6 +70,8 @@ class Graph:
                     visited.append(neighbour)
                     queue.enqueue(neighbour)
 
+  
+
     def dfs_util(self,v, visited):
         visited.add(v)
         print(v, end=' ')
@@ -73,13 +82,28 @@ class Graph:
     def DFS(self,v: Vertex):
         visited = set()
         self.dfs_util(v,visited)
-   
-    def show(self):
-        for key, value in self.adjacencies.items():
-            print(key, '---->', value)
-    
+        
 
-    def print(self)->str:
+    def show(self):
+        if(self.draw_directed):
+            G = nx.DiGraph()
+            G.add_weighted_edges_from(self.draw_directed)
+            pos=nx.spring_layout(G)
+            nx.draw_networkx(G,pos,arrows=True)
+            labels = nx.get_edge_attributes(G,'weight')
+            nx.draw_networkx_edge_labels(G,pos,edge_labels=labels) 
+            plt.show()
+        if(self.draw_undirected):
+            G = nx.Graph()
+            G.add_weighted_edges_from(self.draw_undirected)
+            pos=nx.spring_layout(G)
+            nx.draw_networkx(G,pos)
+            labels = nx.get_edge_attributes(G,'weight')
+            nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+            plt.show()   
+        
+    
+    def __str__(self):
         edges = []
         for vertex in self.adjacencies:
             for neighbour in self.adjacencies[vertex]:
@@ -92,13 +116,9 @@ class Graph:
 
         for key,value in dictionary.items():
             dictionary2[key] = set(value)
+        out = ""
         for key, value in dictionary2.items():
-            print(key, '---->', value)
-    
-    
-    
+            out+=str(key)+'---->'+str(value)+"\n"
+        return out
         
-    
         
-
-
